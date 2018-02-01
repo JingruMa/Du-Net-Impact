@@ -1,6 +1,6 @@
 ---
 title: "Import_tidy"
-author: "Moran"
+author: "Moran Wang & Jingru Ma "
 date: "January 31, 2018"
 output: html_document
 ---
@@ -37,7 +37,7 @@ excel_sheets("2017 Updated Weekly Metrics Compilation.xlsx")
 
 #read one sheet data
 rdata <- function (x){
-  #x is the sheet number 
+  #x is the sheet number or sheet name
   dat <- read_excel ("2017 Updated Weekly Metrics Compilation.xlsx", sheet = x)
   return (dat )
 }
