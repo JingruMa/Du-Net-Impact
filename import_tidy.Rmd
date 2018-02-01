@@ -1,0 +1,49 @@
+---
+title: "Import_tidy"
+author: "Moran"
+date: "January 31, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(readxl)
+library(dplyr)
+```
+
+## import data from the excel 
+
+```{r}
+#read the first sheet in the excel
+#read_excel ("2017 Updated Weekly Metrics Compilation.xlsx")
+
+#list the sheet names in the excel 
+excel_sheets("2017 Updated Weekly Metrics Compilation.xlsx")
+
+#read all sheet and store in table
+#FYTD1718 <- read_excel ("2017 Updated Weekly Metrics Compilation.xlsx", sheet = 1)
+#FYTD17 <- read_excel ("2017 Updated Weekly Metrics Compilation.xlsx", sheet = 2)
+#FYTD1617 <- read_excel ("2017 Updated Weekly Metrics Compilation.xlsx", sheet = 3)
+#serviceLearning <- read_excel ("2017 Updated Weekly Metrics Compilation.xlsx", sheet = 4)
+#foodBox <- read_excel ("2017 Updated Weekly Metrics Compilation.xlsx", sheet = 5)
+#market <- read_excel ("2017 Updated Weekly Metrics Compilation.xlsx", sheet = 6)
+#communityOutreach <- read_excel ("2017 Updated Weekly Metrics Compilation.xlsx", sheet = 7)
+#hidroHuerto <- read_excel ("2017 Updated Weekly Metrics Compilation.xlsx", sheet = 8)
+#aquaponic <- read_excel ("2017 Updated Weekly Metrics Compilation.xlsx", sheet = 9)
+#mushrooms <- read_excel ("2017 Updated Weekly Metrics Compilation.xlsx", sheet = 10)
+#volunteers <- read_excel ("2017 Updated Weekly Metrics Compilation.xlsx", sheet = 11)
+#intern <- read_excel ("2017 Updated Weekly Metrics Compilation.xlsx", sheet = 12)
+
+#read one sheet data
+rdata <- function (x){
+  #x is the sheet number 
+  dat <- read_excel ("2017 Updated Weekly Metrics Compilation.xlsx", sheet = x)
+  return (dat )
+}
+
+
+
+
+```
+
