@@ -8,8 +8,8 @@ Our project is a database about The GrowHaus. It is a non-prot urban green house
   Data Cleaning. There are 12 sheets in database. Moran will clean the first 6 sheets and Jingru will clean the last 6 sheets. 
   Week 6-7. <br />
   Visualization and Summarization. 
-  Week 8. <br />
+  <br /> Week 8. <br />
   Hypothesis,feature,model.
-  Week 9. <br />
+  <br /> Week 9. <br />
   Model assessment.
  
