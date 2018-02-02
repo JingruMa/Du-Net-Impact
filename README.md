@@ -1,6 +1,6 @@
 # Project Objective
 
-Our project is a database about The GrowHaus. It is a non-prot urban green house who focus on food production, distribution, and education.The company is located in northern Denver and provide lots of their services for Denver. The project shows data of three years, 2015,2016 and 2017. By analyzing the data of these three years, the company would be able to understand their organization, distribution and financial problems deeply.
+Our project is a database about The GrowHaus. It is a non-prot urban green house who focus on food production, distribution, and education.The company is located in northern Denver and provide lots of their services for Denver. The project shows data of three years, 2015,2016 and 2017. <br /> By analyzing the data of these three years, the company would be able to understand their organization, distribution and financial problems deeply.
   
 # Millstone 
 
