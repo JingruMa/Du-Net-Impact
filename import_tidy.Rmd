@@ -10,9 +10,12 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(readxl)
 library(dplyr)
+library(zoo)
+library(ggplot2)
+library(readr)
 ```
 
-## import data from the excel 
+## import data from the excel, covert month from number to Date
 
 ```{r}
 #read the first sheet in the excel
@@ -21,20 +24,6 @@ library(dplyr)
 #list the sheet names in the excel 
 excel_sheets("2017 Updated Weekly Metrics Compilation.xlsx")
 
-#read all sheet and store in table
-#FYTD1718 <- read_excel ("2017 Updated Weekly Metrics Compilation.xlsx", sheet = 1)
-#FYTD17 <- read_excel ("2017 Updated Weekly Metrics Compilation.xlsx", sheet = 2)
-#FYTD1617 <- read_excel ("2017 Updated Weekly Metrics Compilation.xlsx", sheet = 3)
-#serviceLearning <- read_excel ("2017 Updated Weekly Metrics Compilation.xlsx", sheet = 4)
-#foodBox <- read_excel ("2017 Updated Weekly Metrics Compilation.xlsx", sheet = 5)
-#market <- read_excel ("2017 Updated Weekly Metrics Compilation.xlsx", sheet = 6)
-#communityOutreach <- read_excel ("2017 Updated Weekly Metrics Compilation.xlsx", sheet = 7)
-#hidroHuerto <- read_excel ("2017 Updated Weekly Metrics Compilation.xlsx", sheet = 8)
-#aquaponic <- read_excel ("2017 Updated Weekly Metrics Compilation.xlsx", sheet = 9)
-#mushrooms <- read_excel ("2017 Updated Weekly Metrics Compilation.xlsx", sheet = 10)
-#volunteers <- read_excel ("2017 Updated Weekly Metrics Compilation.xlsx", sheet = 11)
-#intern <- read_excel ("2017 Updated Weekly Metrics Compilation.xlsx", sheet = 12)
-
 #read one sheet data
 rdata <- function (x){
   #x is the sheet number or sheet name
@@ -42,8 +31,144 @@ rdata <- function (x){
   return (dat )
 }
 
+#read the entire csv file
+redata <- function (x) {
+  sdat <- read.csv(x)
+  return (sdat)
+}
+
+#after read the csv file into r, want to subset the special range
+sub_range <- function (d, star_r,end_r,star_c,end_c) {
+  return (d[star_r:end_r,star_c:end_c])
+}
+
+#delete the row doesn't useful in the subset
+delete_row <- function (dat, r){
+  return (dat[-c(r),])
+}
+
+# read specific range in the excel 
+read_range <- function(x,s,y) {  #x: dataset s:sheetname y:range you want to read
+  r <- paste0(s,"!", y)
+  spedat <- read_excel (x,range= r)
+  return (spedat)
+}
+
+#make date February 18 to 2018-02-01
+clean_date <- function (datafromcsv){
+  hh <- as.yearmon(paste(year_format(datafromcsv), month_format(datafromcsv)), "%Y%m", sep="-")
+dates1 <- as.Date(hh)
+}
+
+
+## covert month from February to 2
+slm <- vector()
+slom <- vector()
+sslom <- vector()
+month_format  <- function (datacolumn) {
+ for (i in 1:length(datacolumn)) 
+{
+  slm[i] <- as.character(datacolumn[i])
+  slom[i] <- strsplit(slm[i], " ")
+  sslom[i] <- slom[i][[1]][1]    #month
+  i <- i+ 1
+}
+
+fslm <- factor(sslom) 
+fslm
+convert <- sapply(fslm, function (x) { grep(x, month.name); })   #int 
+return (convert)
+}
+
+## covert year 15 to 2015
+m <- vector()
+year_format <- function (somedata) {
+
+
+#r <- datacolumn
+s<- vector()
+p <- vector()
+q<- vector()
+for (i in 1:length(somedata))
+{
+  m[i] <- as.character(somedata[i])
+  p[i]<- strsplit(m[i], " ")
+  q[i] <- p[i][[1]][2] 
+  if (q[i] == "18")
+  {
+    s [i] <- '2018'
+  }
+  if (q[i] == "17")
+  {
+    s [i] <- '2017'
+  }
+  if (q[i] == "16")
+  {
+    s [i] <- '2016'
+  }
+  if (q[i] == "15")
+  {
+    s [i] <- '2015'
+  }
+  i <- i + 1
+}
+ return (s)
+}
+
+# make $money to numeric number
+make_int <- function (z) {
+  return (parse_number(z))
+}
 
 
 
 ```
+
+## Sevice Learning
+```{r}
+#read data 
+serviceLearning <- redata ("Service Learning.csv")
+
+##subset the FY2017-18 to FY 2015, change header names
+SL_data <- sub_range(serviceLearning,4,45,1,9)
+colnames(SL_data) <-c("Month","Zone1","Zone2","Zone3","TNStudents","Tours","Classes","SLR","Reunve")
+# delete the rows that are not useful 
+d_v <- c ('FY 16-17', '2016', 'FY 15-16','2015')
+SL_data <- filter (SL_data, !SL_data$Month %in% d_v)
+str(SL_data)
+
+#test function month_format , good 
+testnew <- SL_data$Month
+mth <- month_format(testnew)
+
+# test function year_format, good
+yrnew <- year_format(SL_data$Month)
+
+#try to add the mth , int 2,3,4 with yrnew, factor 2018,2017...
+#hh <- as.yearmon(paste(yrnew, mth), "%Y%m", sep="-")
+#dates1 <- as.Date(hh)
+#SL_data$graphYearCol <- clean_date(SL_data$Month)
+
+#change month from Feburary 18 to Feb 18
+SL_data$Month <- as.yearmon(paste(year_format(SL_data$Month), month_format(SL_data$Month)), "%Y%m", sep="-")
+
+#add a new column in SLrevenue
+SL_data$SLRIn <- make_int(SL_data$SLR)
+
+##draw graph of year and total service learning reveune
+# the graph has already removed the missing value
+
+#if the revenue is 0, i decided to calcualte an average value to replace it
+m <- mean(SL_data$SLRIn,na.rm=TRUE)
+SL_data$SLRIn[7] <- m
+
+g <- ggplot (SL_data, aes (SL_data$Month,SL_data$SLRIn)) + geom_line()  + xlab(" ") + ylab("Service Learning Revevnue")
+g
+
+
+
+```
+
+
+
 
