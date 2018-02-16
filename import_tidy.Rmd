@@ -83,8 +83,6 @@ return (convert)
 ## covert year 15 to 2015
 m <- vector()
 year_format <- function (somedata) {
-
-
 #r <- datacolumn
 s<- vector()
 p <- vector()
@@ -120,6 +118,14 @@ make_int <- function (z) {
   return (parse_number(z))
 }
 
+#add total by month by year
+aggregate_month <- function (data, x, y){
+  #x is the range of the data you want to add
+  #y is the column of the year month
+  temp_data <- subset (data[x])
+  sum1 <- aggregate(temp_data,by = list(substr(data$y,1,7)),sum)
+  return (sum1)
+}
 
 
 ```
@@ -169,6 +175,83 @@ g
 
 ```
 
+##Food Box
+```{r}
+FoodBox <- redata ("FoodBox.csv")
+FB_data <- sub_range(FoodBox,2,164,1,8)
+colnames(FB_data) <-c("Date","TotalBoxes","BasicBoxes","FamilyBoxes","Zone1","Zone2","Zone3","Revenue")
+
+Month17 <- c('January','February','March','April','May','June', 'July', 'August', 'September','October' , 'November', 'December' )
+FB_Month17 <- filter (FB_data, FB_data$Date %in% Month17)
+
+d_v <- c ('FY 16-17', '2016', 'FY 15-16','2015', 'FY 17-18',  'YTD' , 'January','February','March','April','May','June', 'July', 'August', 'September','October' , 'November', 'December')
+FB_data <- filter (FB_data, !FB_data$Date %in% d_v)
+#str(FB_data)
+
+#convert totalboxes, basic boxes, family boxes, zone1 ,zone2, zone3 to numeric number 
+FB_data[2:7] <- lapply(FB_data[2:7], function(x) as.numeric(as.character(x)))
+
+#date is a factor, convert it to a date
+FB_data$Date <- as.Date(FB_data$Date, format = "%m/%d/%Y")
+
+FB_data <- na.omit(FB_data)
+
+str(FB_data)
+
+#aggregate the total number of box in different month by year
+# how to convert a date to a short date: FB_data$shortdate <- strftime(FB_data$Date, format="%Y/%m")
+sb_FB_data <- subset(FB_data[2:7])
+sum_year_month <- aggregate(sb_FB_data,by=list((substr(FB_data$Date,1,7))),sum) 
+str(sum_year_month) # the group.1 is a charactor , i need to change it to the date to plot 
+ 
+#aggregate_month(FB_data,2:7,FB_data$Date) #this function return the argument must have sum length error
+
+#convert charactor as date
+sum_year_month$Group.1 <- as.yearmon(sum_year_month$Group.1)
+str(sum_year_month)
+
+#basically, except the 2017-11, the other month's total boxes = bassic boxes + family boxes
+variable <- c(sum_year_month$Zone1, sum_year_month$Zone2 , sum_year_month$Zone3)
+g <- ggplot (sum_year_month, aes (sum_year_month$Group.1,sum_year_month$Zone1)) + geom_line(aes(color = "Zone1"))  + xlab(" ") + ylab("FoodBoxes")
+g <- g + geom_line(aes(y = sum_year_month$Zone2, color = "Zone2")) 
+g <- g + geom_line(aes(y = sum_year_month$Zone3, color = "Zone3"))
+g <- g + scale_color_manual(values = c("red", "blue", "green")) +
+  labs(color="legend") 
+g
+# for most of the sum zone1, zone2 and zone3, their value equal to total boxes. But for some of them, they are not equal. 
+
+#need to deal with the table contained the revenue through 2015-2017
+
+```
+##Food Box
+```{r}
+Market <- redata ("Market.csv")
+Market_data <- sub_range(Market,11,166,1,9)
+colnames(Market_data) <-c("Date","Zone1","Zone1Sale","Outside","Zone2","Zone2Sale","Zone3","Zone3Sale", "TotalSales")
+
+d_v <- c ('FY 16-17', '2016', 'FY 15-16','2015', 'FY 17-18',  'YTD' , 'January','February','March','April','May','June', 'July', 'August', 'September','October' , 'November', 'December', 'June total')
+Market_data <- filter (Market_data, !Market_data$Date %in% d_v)
+
+#convert factor to number
+Market_data[2:9] <- lapply(Market_data[2:9], function(x) as.numeric(as.character(x)))
+
+#convert the factor date to date 
+Market_data$Date <- as.Date(Market_data$Date, format = "%m/%d/%Y")
+
+str(Market_data)
+
+#aggregate the total number of box in different month by year
+market_sum_month <- aggregate(Market_data$TotalBoxes,by=list((substr(Market_data$Date,1,7))),sum) #Group.1 = date, x is TotalTransaction
+
+#convert charactor as date
+market_sum_month$Group.1 <- as.yearmon(market_sum_month$Group.1)
+
+g <- ggplot (market_sum_month, aes (market_sum_month$Group.1,market_sum_month$x)) + geom_line()  + xlab(" ") + ylab("Total Transaction")
+g
+
+#need to read the table includes revenue and total boxes by month
 
 
 
+
+```
