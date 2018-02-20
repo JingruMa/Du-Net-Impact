@@ -1,0 +1,257 @@
+---
+title: "Import_tidy"
+author: "Moran Wang & Jingru Ma "
+date: "January 31, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(readxl)
+library(dplyr)
+library(zoo)
+library(ggplot2)
+library(readr)
+```
+
+## import data from the excel, covert month from number to Date
+
+```{r}
+#read the first sheet in the excel
+#read_excel ("2017 Updated Weekly Metrics Compilation.xlsx")
+
+#list the sheet names in the excel 
+excel_sheets("2017 Updated Weekly Metrics Compilation.xlsx")
+
+#read one sheet data
+rdata <- function (x){
+  #x is the sheet number or sheet name
+  dat <- read_excel ("2017 Updated Weekly Metrics Compilation.xlsx", sheet = x)
+  return (dat )
+}
+
+#read the entire csv file
+redata <- function (x) {
+  sdat <- read.csv(x)
+  return (sdat)
+}
+
+#after read the csv file into r, want to subset the special range
+sub_range <- function (d, star_r,end_r,star_c,end_c) {
+  return (d[star_r:end_r,star_c:end_c])
+}
+
+#delete the row doesn't useful in the subset
+delete_row <- function (dat, r){
+  return (dat[-c(r),])
+}
+
+# read specific range in the excel 
+read_range <- function(x,s,y) {  #x: dataset s:sheetname y:range you want to read
+  r <- paste0(s,"!", y)
+  spedat <- read_excel (x,range= r)
+  return (spedat)
+}
+
+#make date February 18 to 2018-02-01
+clean_date <- function (datafromcsv){
+  hh <- as.yearmon(paste(year_format(datafromcsv), month_format(datafromcsv)), "%Y%m", sep="-")
+dates1 <- as.Date(hh)
+}
+
+
+## covert month from February to 2
+slm <- vector()
+slom <- vector()
+sslom <- vector()
+month_format  <- function (datacolumn) {
+ for (i in 1:length(datacolumn)) 
+{
+  slm[i] <- as.character(datacolumn[i])
+  slom[i] <- strsplit(slm[i], " ")
+  sslom[i] <- slom[i][[1]][1]    #month
+  i <- i+ 1
+}
+
+fslm <- factor(sslom) 
+fslm
+convert <- sapply(fslm, function (x) { grep(x, month.name); })   #int 
+return (convert)
+}
+
+## covert year 15 to 2015
+m <- vector()
+year_format <- function (somedata) {
+#r <- datacolumn
+s<- vector()
+p <- vector()
+q<- vector()
+for (i in 1:length(somedata))
+{
+  m[i] <- as.character(somedata[i])
+  p[i]<- strsplit(m[i], " ")
+  q[i] <- p[i][[1]][2] 
+  if (q[i] == "18")
+  {
+    s [i] <- '2018'
+  }
+  if (q[i] == "17")
+  {
+    s [i] <- '2017'
+  }
+  if (q[i] == "16")
+  {
+    s [i] <- '2016'
+  }
+  if (q[i] == "15")
+  {
+    s [i] <- '2015'
+  }
+  i <- i + 1
+}
+ return (s)
+}
+
+# make $money to numeric number
+make_int <- function (z) {
+  return (parse_number(z))
+}
+
+#add total by month by year
+aggregate_month <- function (data, x, y){
+  #x is the range of the data you want to add
+  #y is the column of the year month
+  temp_data <- subset (data[x])
+  sum1 <- aggregate(temp_data,by = list(substr(data$y,1,7)),sum)
+  return (sum1)
+}
+
+
+```
+
+## Sevice Learning
+```{r}
+#read data 
+serviceLearning <- redata ("Service Learning.csv")
+
+##subset the FY2017-18 to FY 2015, change header names
+SL_data <- sub_range(serviceLearning,4,45,1,9)
+colnames(SL_data) <-c("Month","Zone1","Zone2","Zone3","TNStudents","Tours","Classes","SLR","Reunve")
+# delete the rows that are not useful 
+d_v <- c ('FY 16-17', '2016', 'FY 15-16','2015')
+SL_data <- filter (SL_data, !SL_data$Month %in% d_v)
+str(SL_data)
+
+#test function month_format , good 
+testnew <- SL_data$Month
+mth <- month_format(testnew)
+
+# test function year_format, good
+yrnew <- year_format(SL_data$Month)
+
+#try to add the mth , int 2,3,4 with yrnew, factor 2018,2017...
+#hh <- as.yearmon(paste(yrnew, mth), "%Y%m", sep="-")
+#dates1 <- as.Date(hh)
+#SL_data$graphYearCol <- clean_date(SL_data$Month)
+
+#change month from Feburary 18 to Feb 18
+SL_data$Month <- as.yearmon(paste(year_format(SL_data$Month), month_format(SL_data$Month)), "%Y%m", sep="-")
+
+#add a new column in SLrevenue
+SL_data$SLRIn <- make_int(SL_data$SLR)
+
+##draw graph of year and total service learning reveune
+# the graph has already removed the missing value
+
+#if the revenue is 0, i decided to calcualte an average value to replace it
+m <- mean(SL_data$SLRIn,na.rm=TRUE)
+SL_data$SLRIn[7] <- m
+
+g <- ggplot (SL_data, aes (SL_data$Month,SL_data$SLRIn)) + geom_line()  + xlab(" ") + ylab("Service Learning Revevnue")
+g
+
+
+
+```
+
+##Food Box
+```{r}
+FoodBox <- redata ("FoodBox.csv")
+FB_data <- sub_range(FoodBox,2,164,1,8)
+colnames(FB_data) <-c("Date","TotalBoxes","BasicBoxes","FamilyBoxes","Zone1","Zone2","Zone3","Revenue")
+
+Month17 <- c('January','February','March','April','May','June', 'July', 'August', 'September','October' , 'November', 'December' )
+FB_Month17 <- filter (FB_data, FB_data$Date %in% Month17)
+
+d_v <- c ('FY 16-17', '2016', 'FY 15-16','2015', 'FY 17-18',  'YTD' , 'January','February','March','April','May','June', 'July', 'August', 'September','October' , 'November', 'December')
+FB_data <- filter (FB_data, !FB_data$Date %in% d_v)
+#str(FB_data)
+
+#convert totalboxes, basic boxes, family boxes, zone1 ,zone2, zone3 to numeric number 
+FB_data[2:7] <- lapply(FB_data[2:7], function(x) as.numeric(as.character(x)))
+
+#date is a factor, convert it to a date
+FB_data$Date <- as.Date(FB_data$Date, format = "%m/%d/%Y")
+
+FB_data <- na.omit(FB_data)
+
+str(FB_data)
+
+#aggregate the total number of box in different month by year
+# how to convert a date to a short date: FB_data$shortdate <- strftime(FB_data$Date, format="%Y/%m")
+sb_FB_data <- subset(FB_data[2:7])
+sum_year_month <- aggregate(sb_FB_data,by=list((substr(FB_data$Date,1,7))),sum) 
+str(sum_year_month) # the group.1 is a charactor , i need to change it to the date to plot 
+ 
+#aggregate_month(FB_data,2:7,FB_data$Date) #this function return the argument must have sum length error
+
+#convert charactor as date
+sum_year_month$Group.1 <- as.yearmon(sum_year_month$Group.1)
+str(sum_year_month)
+
+#basically, except the 2017-11, the other month's total boxes = bassic boxes + family boxes
+variable <- c(sum_year_month$Zone1, sum_year_month$Zone2 , sum_year_month$Zone3)
+g <- ggplot (sum_year_month, aes (sum_year_month$Group.1,sum_year_month$Zone1)) + geom_line(aes(color = "Zone1"))  + xlab(" ") + ylab("FoodBoxes")
+g <- g + geom_line(aes(y = sum_year_month$Zone2, color = "Zone2")) 
+g <- g + geom_line(aes(y = sum_year_month$Zone3, color = "Zone3"))
+g <- g + scale_color_manual(values = c("red", "blue", "green")) +
+  labs(color="legend") 
+g
+# for most of the sum zone1, zone2 and zone3, their value equal to total boxes. But for some of them, they are not equal. 
+
+#need to deal with the table contained the revenue through 2015-2017
+
+```
+##Market
+```{r}
+Market <- redata ("Market.csv")
+Market_data <- sub_range(Market,11,166,1,9)
+colnames(Market_data) <-c("Date","Zone1","Zone1Sale","Outside","Zone2","Zone2Sale","Zone3","Zone3Sale", "TotalSales")
+
+d_v <- c ('FY 16-17', '2016', 'FY 15-16','2015', 'FY 17-18',  'YTD' , 'January','February','March','April','May','June', 'July', 'August', 'September','October' , 'November', 'December', 'June total')
+Market_data <- filter (Market_data, !Market_data$Date %in% d_v)
+
+#convert factor to number
+Market_data[2:9] <- lapply(Market_data[2:9], function(x) as.numeric(as.character(x)))
+
+#convert the factor date to date 
+Market_data$Date <- as.Date(Market_data$Date, format = "%m/%d/%Y")
+
+str(Market_data)
+
+#aggregate the total number of box in different month by year
+market_sum_month <- aggregate(Market_data$TotalBoxes,by=list((substr(Market_data$Date,1,7))),sum) #Group.1 = date, x is TotalTransaction
+
+#convert charactor as date
+market_sum_month$Group.1 <- as.yearmon(market_sum_month$Group.1)
+
+g <- ggplot (market_sum_month, aes (market_sum_month$Group.1,market_sum_month$x)) + geom_line()  + xlab(" ") + ylab("Total Transaction")
+g
+
+#need to read the table includes revenue and total boxes by month
+
+
+
+
+```
