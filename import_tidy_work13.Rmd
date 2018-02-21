@@ -223,6 +223,7 @@ g
 #need to deal with the table contained the revenue through 2015-2017
 
 ```
+
 ##Market
 ```{r}
 Market <- redata ("Market.csv")
@@ -248,6 +249,7 @@ market_sum_month$Group.1 <- as.yearmon(market_sum_month$Group.1)
 
 g <- ggplot (market_sum_month, aes (market_sum_month$Group.1,market_sum_month$x)) + geom_line()  + xlab(" ") + ylab("Total Transaction")
 g
+
 
 #need to read the table includes revenue and total boxes by month
 
