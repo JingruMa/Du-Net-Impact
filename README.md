@@ -9,7 +9,7 @@ Our project is a database about The GrowHaus. It is a non-prot urban green house
   <br /> Week 6-7. <br />
   Visualization and Summarization. 
   <br /> Week 8. <br />
-  Hypothesis,feature,model.
+  metrics (KPI) indicating progress, Hypothesis,feature,model.
   <br /> Week 9. <br />
   Model assessment.
  
