@@ -1,8 +1,11 @@
 ---
 title: "Import_tidy"
-author: "Moran Wang & Jingru Ma "
+author: 'Moran Wang & Jingru Ma '
 date: "January 31, 2018"
-output: html_document
+output:
+  word_document: default
+  pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -13,122 +16,10 @@ library(dplyr)
 library(zoo)
 library(ggplot2)
 library(readr)
+source("import_tidy_function.R")
+source("BulletGraph.R")
 ```
 
-## import data from the excel, covert month from number to Date
-
-```{r}
-#read the first sheet in the excel
-#read_excel ("2017 Updated Weekly Metrics Compilation.xlsx")
-
-#list the sheet names in the excel 
-excel_sheets("2017 Updated Weekly Metrics Compilation.xlsx")
-
-#read one sheet data
-rdata <- function (x){
-  #x is the sheet number or sheet name
-  dat <- read_excel ("2017 Updated Weekly Metrics Compilation.xlsx", sheet = x)
-  return (dat )
-}
-
-#read the entire csv file
-redata <- function (x) {
-  sdat <- read.csv(x)
-  return (sdat)
-}
-
-#after read the csv file into r, want to subset the special range
-sub_range <- function (d, star_r,end_r,star_c,end_c) {
-  return (d[star_r:end_r,star_c:end_c])
-}
-
-#delete the row doesn't useful in the subset
-delete_row <- function (dat, r){
-  return (dat[-c(r),])
-}
-
-# read specific range in the excel 
-read_range <- function(x,s,y) {  #x: dataset s:sheetname y:range you want to read
-  r <- paste0(s,"!", y)
-  spedat <- read_excel (x,range= r)
-  return (spedat)
-}
-
-#make date February 18 to 2018-02-01
-clean_date <- function (datafromcsv){
-  hh <- as.yearmon(paste(year_format(datafromcsv), month_format(datafromcsv)), "%Y%m", sep="-")
-dates1 <- as.Date(hh)
-}
-
-
-## covert month from February to 2
-slm <- vector()
-slom <- vector()
-sslom <- vector()
-month_format  <- function (datacolumn) {
- for (i in 1:length(datacolumn)) 
-{
-  slm[i] <- as.character(datacolumn[i])
-  slom[i] <- strsplit(slm[i], " ")
-  sslom[i] <- slom[i][[1]][1]    #month
-  i <- i+ 1
-}
-
-fslm <- factor(sslom) 
-fslm
-convert <- sapply(fslm, function (x) { grep(x, month.name); })   #int 
-return (convert)
-}
-
-## covert year 15 to 2015
-m <- vector()
-year_format <- function (somedata) {
-#r <- datacolumn
-s<- vector()
-p <- vector()
-q<- vector()
-for (i in 1:length(somedata))
-{
-  m[i] <- as.character(somedata[i])
-  p[i]<- strsplit(m[i], " ")
-  q[i] <- p[i][[1]][2] 
-  if (q[i] == "18")
-  {
-    s [i] <- '2018'
-  }
-  if (q[i] == "17")
-  {
-    s [i] <- '2017'
-  }
-  if (q[i] == "16")
-  {
-    s [i] <- '2016'
-  }
-  if (q[i] == "15")
-  {
-    s [i] <- '2015'
-  }
-  i <- i + 1
-}
- return (s)
-}
-
-# make $money to numeric number
-make_int <- function (z) {
-  return (parse_number(z))
-}
-
-#add total by month by year
-aggregate_month <- function (data, x, y){
-  #x is the range of the data you want to add
-  #y is the column of the year month
-  temp_data <- subset (data[x])
-  sum1 <- aggregate(temp_data,by = list(substr(data$y,1,7)),sum)
-  return (sum1)
-}
-
-
-```
 
 ## Sevice Learning
 ```{r}
@@ -141,7 +32,7 @@ colnames(SL_data) <-c("Month","Zone1","Zone2","Zone3","TNStudents","Tours","Clas
 # delete the rows that are not useful 
 d_v <- c ('FY 16-17', '2016', 'FY 15-16','2015')
 SL_data <- filter (SL_data, !SL_data$Month %in% d_v)
-str(SL_data)
+#str(SL_data)
 
 #test function month_format , good 
 testnew <- SL_data$Month
@@ -161,6 +52,11 @@ SL_data$Month <- as.yearmon(paste(year_format(SL_data$Month), month_format(SL_da
 #add a new column in SLrevenue
 SL_data$SLRIn <- make_int(SL_data$SLR)
 
+#Zone23= zone2 + zone3 
+temp <- make_int(SL_data[1:14,3]) + make_int(SL_data[1:14,4])
+temp2 <- make_int(SL_data[15:38,4])
+SL_data$zone23 <- c(temp,temp2)
+
 ##draw graph of year and total service learning reveune
 # the graph has already removed the missing value
 
@@ -168,12 +64,64 @@ SL_data$SLRIn <- make_int(SL_data$SLR)
 m <- mean(SL_data$SLRIn,na.rm=TRUE)
 SL_data$SLRIn[7] <- m
 
-g <- ggplot (SL_data, aes (SL_data$Month,SL_data$SLRIn)) + geom_line()  + xlab(" ") + ylab("Service Learning Revevnue")
-g
+#bullet graph, Service Learning Revenue
+#box plot, var 
 
+#split Feb 2018 to 2018
+SL_data <- mutate(SL_data,year=sapply(str_split(SL_data$Month," "),function(x){x[2]}))
+boxplot <- ggplot (SL_data, aes(x = SL_data$year, y = SL_data$SLRIn)) + 
+  geom_boxplot()+ xlab("Years") + 
+  ylab("Service Learning Revenue") + ggtitle("Revenue in Years")
 
-
+graphx <- max(SL_data$SLRIn, na.rm= TRUE)
+bulletgraph(x=graphx,ref=4500,limits=c(0,3500,5000,6000),name= "Service Learning Revenue 15-17",subname="(U.S. $ in \n thousands)",width=0.2)
 ```
+The KPI of servise learning, we shows the revenue of service learning graphically. The reference point is 4500 and the three levels of background are 3500,5000 and 6000. The blue bar reach to the green level which is the excellent level.
+```{r}
+
+boxplot #looks like revenue have outlier 
+```
+This graph is showing the service learning revenue in the year of 2015,2016 and 2017 as a boxplot. The maximum, third quartile,median, first quartile and minimum of data are showing on the plot. 
+```{r}
+
+#analysis: fit linear regression model, the zone1+ zone2+zone3(TNstudents)
+lr_data <- SL_data[,c(5,10)]
+lr_data$TNStudents <- make_int(lr_data$TNStudents)
+new.data <- lr_data[rowSums(is.na(lr_data[ ,c("TNStudents", "SLRIn")])) < 2, ]
+
+# linear regression 
+p1 <- ggplot (data = new.data, aes(x= TNStudents, y = SLRIn)) + geom_point() + xlab("Student") + 
+  ylab("Revenue") + ggtitle("Total#Students VS Revenue")
+p1
+```
+This graph is showing the relationship of students and revenue. The data of students is independent variables, the data of revenue is dependent variables. 
+```{r}
+
+lm1 <- lm(new.data$SLRIn ~ new.data$TNStudents)
+m <- 2.686 
+b <- 991.115
+g <- p1 + geom_abline(slope = m, intercept = b)
+g
+# residual
+lm1$residuals
+data.resid1 <- bind_cols(new.data,fitted = lm1$fitted.values)
+g<-g + geom_linerange(data=data.resid1,aes(x=data.resid1$TNStudents,
+                                         ymin=data.resid1$SLRIn,ymax=data.resid1$fitted))
+g
+```
+Adding a line into graph p1. This graph is showing as a linear regression. The points are not extremely close to the linear. Therefore, the students are revenue might not related to each other.
+
+```{r}
+# R- square, residuals
+summary(lm1)
+qplot(new.data$TNStudents, lm1$residuals) + xlab("total sales")
+
+qqnorm(lm1$residuals)
+qqline(lm1$residuals)
+# I think linear line is not a good way to fit this relation
+```
+
+
 
 ##Food Box
 ```{r}
@@ -219,11 +167,27 @@ g <- g + scale_color_manual(values = c("red", "blue", "green")) +
   labs(color="legend") 
 g
 # for most of the sum zone1, zone2 and zone3, their value equal to total boxes. But for some of them, they are not equal. 
-
+```
+This graph is showing the line graphs of Zone1, Zone2 and Zone3 in the Food Boxes dataset. The data of Zone3 are large than the other two.
+```{r}
 #need to deal with the table contained the revenue through 2015-2017
 
+# try to create a bar graph same with excel, year, zone boxes, zones (like zone1, zone2, zone3)
+new_graph <- sum_year_month %>% gather ('Zone1','Zone2','Zone3',key = "Date", value = 'TotalBoxes')
+ngraph <- new_graph[c(1,5:6)]
+
+ggplot(data=ngraph, aes(x=Group.1, y=TotalBoxes, fill=ngraph$Date)) +
+geom_bar(stat="identity", position=position_dodge()) + 
+labs(x="Month", title = "Food Boxes by Zone", fill = "Zone")
+
+
+#KPI
+bulletgraph(x=max(FB_data$TotalBoxes),ref=80,limits=c(0,50,100,150),name= "Total Food Boxes",subname="(TotalBoxes)",width=0.2)
+
 ```
-##Food Box
+Showing the KPI of total food boxes. The reference point is 80. The three levels of background are 50,100 and 150. The blue bar reach to the green level which is the excellent level.
+
+## Market
 ```{r}
 Market <- redata ("Market.csv")
 Market_data <- sub_range(Market,11,166,1,9)
@@ -240,18 +204,75 @@ Market_data$Date <- as.Date(Market_data$Date, format = "%m/%d/%Y")
 
 str(Market_data)
 
-#aggregate the total number of box in different month by year
-market_sum_month <- aggregate(Market_data$TotalBoxes,by=list((substr(Market_data$Date,1,7))),sum) #Group.1 = date, x is TotalTransaction
+#add total by month by year
+aggregate_month <- function (data, x, y){
+  #x is the range of the data you want to add
+  #y is the column of the year month
+  temp_data <- subset (data[x])
+  sum1 <- aggregate(temp_data,by = list(substr(data$y,1,7)),sum)
+  return (sum1)
+}
 
-#convert charactor as date
-market_sum_month$Group.1 <- as.yearmon(market_sum_month$Group.1)
+#remove all columns with na 
+nmd <- Market_data[ , colSums(is.na(Market_data)) == 0]
 
-g <- ggplot (market_sum_month, aes (market_sum_month$Group.1,market_sum_month$x)) + geom_line()  + xlab(" ") + ylab("Total Transaction")
+
+g <- ggplot (nmd, aes (nmd$Date,nmd$TotalSales)) + geom_line()  + xlab(" ") + ylab("Total Transaction")
 g
+```
+This graph is showing the total sales in different date from data. As the graph shows, the total sales are growing basically.
+```{r}
 
 #need to read the table includes revenue and total boxes by month
+Market_Revenue <- sub_range(Market,4,40,11,13)
+#delete blank value
+Market_Revenue <- Market_Revenue[-which(Market_Revenue$MONTHLY == ""),]
+mr <- Market_Revenue [-20, ]
 
+mr$X.9 <- make_int(mr$X.9)
+mr$X.10 <- make_int(mr$X.10)
 
+mr$MONTHLY <- as.Date(mr$MONTHLY, format = "%m/%d/%Y")
 
-
+g3 <- ggplot (mr, aes (mr$MONTHLY,mr$X.10)) + geom_line(aes(color = "Revenue"))  + xlab(" ") + ylab("Market Revenue")
+g3 <- g3 + geom_line(aes(y = mr$X.9, color = "TotalSale"))
+g3
 ```
+This graph is comparing the Revenue and total sales of market in different data. The total sale is clearly lower than revenue everyday.
+
+```{r}
+
+
+#linear regression , total sale and revenue
+#density plot, check distribution
+p1 <- ggplot (data = mr, aes(x= mr$X.9, y = mr$X.10)) + geom_point() + xlab("TotalSale") + 
+  ylab("Revenue") + ggtitle("TotalSale VS Revenue")
+p1
+
+lm.sr <- lm(mr$X.10 ~ mr$X.9)
+m <- 8.431 
+b <- 419.221
+g <- p1 + geom_abline(slope = m, intercept = b)
+g
+
+# residual
+lm.sr$residuals
+data.resid <- bind_cols(mr,fitted = lm.sr$fitted.values)
+g<-g + geom_linerange(data=data.resid,aes(x=data.resid$X.9,
+                                          ymin=data.resid$X.10,ymax=data.resid$fitted))
+g
+```
+Adding a linear regression to show the relationship between revenue and total sale. The points are close to the line. Thus, Total sale and revenue are related to each other.
+```{r}
+
+# R- square, residuals
+summary(lm.sr)
+qplot(mr$X.9, lm.sr$residuals) + xlab("total sales")
+
+qqnorm(lm.sr$residuals)
+qqline(lm.sr$residuals)
+
+# KPI
+bulletgraph(x=max(mr$X.10, na.rm=TRUE),ref=4500,limits=c(0,3500,5500,7000),name= "Market Revenue",subname="(U.S. $ in \n thousands)",width=0.2)
+```
+Showing the KPI of market revenue. The reference point of this graph is 4500, the three levels of background are 3500,5500 and 7000. The blue bar reach to the green level which is the excellent level. 
