@@ -68,18 +68,75 @@ SL_data$SLRIn[7] <- m
 #box plot, var 
 
 #split Feb 2018 to 2018
+SL_data <- na.omit(SL_data)
 SL_data <- mutate(SL_data,year=sapply(str_split(SL_data$Month," "),function(x){x[2]}))
-boxplot <- ggplot (SL_data, aes(x = SL_data$year, y = SL_data$SLRIn)) + 
+b1 <- boxplot <- ggplot (SL_data, aes(x = SL_data$year, y = SL_data$SLRIn)) + 
   geom_boxplot()+ xlab("Years") + 
   ylab("Service Learning Revenue") + ggtitle("Revenue in Years")
 
 graphx <- max(SL_data$SLRIn, na.rm= TRUE)
-bulletgraph(x=graphx,ref=4500,limits=c(0,3500,5000,6000),name= "Service Learning Revenue 15-17",subname="(U.S. $ in \n thousands)",width=0.2)
+bulletgraph(x=graphx,ref=4500,limits=c(0,3500,5000,6000),name= "",subname="(U.S. $ in \n thousands)",width=0.2)
 ```
 The KPI of servise learning, we shows the revenue of service learning graphically. The reference point is 4500 and the three levels of background are 3500,5000 and 6000. The blue bar reach to the green level which is the excellent level.
 ```{r}
 
 boxplot #looks like revenue have outlier 
+
+# the max point 
+boxout=boxplot(SL_data$SLRIn)$out 
+outname=as.character(SL_data$SLRIn) 
+outname[(SL_data$SLRIn %in% boxout)==FALSE]="\n" 
+
+outname
+
+b1 <- b1+geom_text(label=outname)  # the first is 3346, 
+b1 
+
+str(SL_data)
+
+#summary of the boxplot
+#create a new data frame, like slr 2016, 2017, 2018
+slr16 <- subset(SL_data, SL_data$year == 2016)
+slr17 <- subset(SL_data, SL_data$year == 2017)
+slr15 <- subset(SL_data, SL_data$year == 2015)
+
+summary(slr15$SLRIn)
+summary(slr16$SLRIn)
+summary(slr17$SLRIn)
+
+# graph for revenue by yearly to see it changes, waterfall graph
+#covert char to number
+SL_data$year <- as.numeric(SL_data$year)
+
+f1 <- aggregate (SLRIn~year, SL_data, sum)
+f1$id <- seq_along(f1$year)
+diff2 <- f1[2, 2] - f1[1,2 ]
+diff3 <- f1[3, 2] - f1[2,2 ]
+
+f1$diff <- c(13759.3, diff2, diff3)
+
+f1$end <- c (13759.30, 20769.20,13479.04)
+f1$start <- c(0, head(f1$end, -1))
+f1$end <- c(head(f1$end, -1), 13479.04)
+
+f1$year <- as.factor(f1$year)
+f1$direction <- ifelse(f1$diff > 0, "Positive", "Negative")
+
+f1 
+
+p1 <- ggplot(f1, aes(f1$year, fill = f1$direction)) + geom_rect(aes(f1$year,xmin = f1$id - 0.45, xmax = f1$id + 0.45, ymin = f1$end, ymax = f1$start)) + xlab ("Year") + labs(title = "Revenue Change by Year")
+
+p1
+
+
+# monthly revenue change
+g <- ggplot (SL_data, aes (SL_data$Month,SL_data$SLRIn)) + geom_line()  + xlab(" ") + ylab("Service Learning Revenue")
+g
+
+
+
+
+
 ```
 This graph is showing the service learning revenue in the year of 2015,2016 and 2017 as a boxplot. The maximum, third quartile,median, first quartile and minimum of data are showing on the plot. 
 ```{r}
@@ -93,6 +150,7 @@ new.data <- lr_data[rowSums(is.na(lr_data[ ,c("TNStudents", "SLRIn")])) < 2, ]
 p1 <- ggplot (data = new.data, aes(x= TNStudents, y = SLRIn)) + geom_point() + xlab("Student") + 
   ylab("Revenue") + ggtitle("Total#Students VS Revenue")
 p1
+
 ```
 This graph is showing the relationship of students and revenue. The data of students is independent variables, the data of revenue is dependent variables. 
 ```{r}
@@ -102,22 +160,25 @@ m <- 2.686
 b <- 991.115
 g <- p1 + geom_abline(slope = m, intercept = b)
 g
+
+summary(lm1)
+
 # residual
 lm1$residuals
-data.resid1 <- bind_cols(new.data,fitted = lm1$fitted.values)
-g<-g + geom_linerange(data=data.resid1,aes(x=data.resid1$TNStudents,
-                                         ymin=data.resid1$SLRIn,ymax=data.resid1$fitted))
-g
+
+# test if residual normal distrbution
+shapiro.test(lm1$residuals)  
+
+par(mfrow=c(2,2))
+plot(lm1) #the result is not trusted 
+
+
 ```
 Adding a line into graph p1. This graph is showing as a linear regression. The points are not extremely close to the linear. Therefore, the students are revenue might not related to each other.
 
 ```{r}
 # R- square, residuals
 summary(lm1)
-qplot(new.data$TNStudents, lm1$residuals) + xlab("total sales")
-
-qqnorm(lm1$residuals)
-qqline(lm1$residuals)
 # I think linear line is not a good way to fit this relation
 ```
 
@@ -182,7 +243,28 @@ labs(x="Month", title = "Food Boxes by Zone", fill = "Zone")
 
 
 #KPI
-bulletgraph(x=max(FB_data$TotalBoxes),ref=80,limits=c(0,50,100,150),name= "Total Food Boxes",subname="(TotalBoxes)",width=0.2)
+bulletgraph(x=max(FB_data$TotalBoxes),ref=80,limits=c(0,50,100,150),name= "",subname="(TotalBoxes)",width=0.2)
+
+# check is there any linear relationship between basic box and zone3
+m <- ggplot (data = FB_data, aes(x= FB_data$BasicBoxes, y = FB_data$Zone3)) + geom_point() + xlab("basic box") + 
+  ylab("zone3") + ggtitle("#of basic food boxes VS #of total boxes in Zone3")+ geom_abline(slope = 0.89559, intercept = 2.51331)
+
+lmn <- lm(FB_data$Zone3 ~ FB_data$BasicBoxes)
+summary(lmn)
+par(mfrow=c(2,2))
+plot(lmn)
+
+shapiro.test(lmn$residuals)
+
+
+m <- ggplot (data = FB_data, aes(x= FB_data$BasicBoxes, y = FB_data$Zone3)) + geom_point() + xlab("basic box") + 
+  ylab("zone3") + ggtitle("Total#Students VS Revenue")
+m
+
+m <- ggplot (data = FB_data, aes(x= FB_data$FamilyBoxes, y = FB_data$Zone3)) + geom_point() + xlab("basic box") + 
+  ylab("zone3") + ggtitle("Total#Students VS Revenue")
+m
+
 
 ```
 Showing the KPI of total food boxes. The reference point is 80. The three levels of background are 50,100 and 150. The blue bar reach to the green level which is the excellent level.
@@ -217,7 +299,7 @@ aggregate_month <- function (data, x, y){
 nmd <- Market_data[ , colSums(is.na(Market_data)) == 0]
 
 
-g <- ggplot (nmd, aes (nmd$Date,nmd$TotalSales)) + geom_line()  + xlab(" ") + ylab("Total Transaction")
+g <- ggplot (nmd, aes (nmd$Date,nmd$TotalSales)) + geom_line()  + xlab(" ") + ylab("Total sale")
 g
 ```
 This graph is showing the total sales in different date from data. As the graph shows, the total sales are growing basically.
@@ -257,10 +339,19 @@ g
 
 # residual
 lm.sr$residuals
+
+# test if residual normal distrbution
+shapiro.test(lm.sr$residuals) 
+
 data.resid <- bind_cols(mr,fitted = lm.sr$fitted.values)
 g<-g + geom_linerange(data=data.resid,aes(x=data.resid$X.9,
                                           ymin=data.resid$X.10,ymax=data.resid$fitted))
 g
+
+summary(lm.sr)
+par(mfrow=c(2,2))
+plot(lm.sr)
+
 ```
 Adding a linear regression to show the relationship between revenue and total sale. The points are close to the line. Thus, Total sale and revenue are related to each other.
 ```{r}
@@ -273,6 +364,6 @@ qqnorm(lm.sr$residuals)
 qqline(lm.sr$residuals)
 
 # KPI
-bulletgraph(x=max(mr$X.10, na.rm=TRUE),ref=4500,limits=c(0,3500,5500,7000),name= "Market Revenue",subname="(U.S. $ in \n thousands)",width=0.2)
+bulletgraph(x=max(mr$X.10, na.rm=TRUE),ref=4500,limits=c(0,3500,5500,7000),name= "",subname="(U.S. $ in \n thousands)",width=0.2)
 ```
 Showing the KPI of market revenue. The reference point of this graph is 4500, the three levels of background are 3500,5500 and 7000. The blue bar reach to the green level which is the excellent level. 
